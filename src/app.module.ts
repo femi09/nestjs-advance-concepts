@@ -9,9 +9,10 @@ import { CategoriesModule } from './categories/categories.module';
 import { FilesModule } from './files/files.module';
 import { PrivateFilesModule } from './private-files/private-files.module';
 import { SearchModule } from './search/search.module';
+import { SubscribersModule } from './subscribers/subscribers.module';
 
 @Module({
-  imports: [PostsModule, DatabaseModule, UsersModule, AuthenticationModule, CategoriesModule, FilesModule, PrivateFilesModule, SearchModule],
+  imports: [PostsModule, DatabaseModule, UsersModule, AuthenticationModule, CategoriesModule, FilesModule, PrivateFilesModule, SearchModule, SubscribersModule],
   controllers: [AppController],
   providers: [AppService],
 })
