@@ -399,3 +399,6 @@ docker.env
 dist
 .webpack
 .serverless/**/*.zip
+crt
+ca.crt
+
