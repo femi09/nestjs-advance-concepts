@@ -35,6 +35,8 @@
     "@types/cookie-parser": "^1.4.6",
     "@types/hapi__joi": "^17.1.14",
     "@types/uuid": "^9.0.8",
+    "amqp-connection-manager": "^4.1.14",
+    "amqplib": "^0.10.3",
     "aws-sdk": "^2.1565.0",
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",
