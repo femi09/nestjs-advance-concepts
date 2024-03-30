@@ -1,7 +1,9 @@
-import PostSearchBody from './post-search-body.interface';
+import PostSearchBody from './postSearchBody.interface';
 interface PostSearchResult {
   hits: {
-    total: number;
+    total: {
+      value: number;
+    };
     hits: Array<{
       _source: PostSearchBody;
     }>;
