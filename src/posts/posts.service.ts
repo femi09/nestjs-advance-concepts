@@ -5,8 +5,9 @@ import UpdatePostDto from './dto/updatePost.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import PostNotFoundException from './exceptions/postNotFound.exception';
-import PostsSearchService from './post-search.service';
 import User from '../users/user.entity';
+import PostsSearchService from './postsSearch.service';
+import { MoreThan, FindManyOptions } from 'typeorm';
 
 @Injectable()
 export default class PostsService {
@@ -16,8 +17,28 @@ export default class PostsService {
     private postsSearchService: PostsSearchService,
   ) {}
 
-  getAllPosts() {
-    return this.postsRepository.find({ relations: ['author'] });
+  async getAllPosts(offset?: number, limit?: number, startId?: number) {
+    const where: FindManyOptions<Post>['where'] = {};
+    let separateCount = 0;
+    if (startId) {
+      where.id = MoreThan(startId);
+      separateCount = await this.postsRepository.count();
+    }
+
+    const [items, count] = await this.postsRepository.findAndCount({
+      where,
+      relations: ['author'],
+      order: {
+        id: 'ASC',
+      },
+      skip: offset,
+      take: limit,
+    });
+
+    return {
+      items,
+      count: startId ? separateCount : count,
+    };
   }
 
   async getPostById(id: number) {
@@ -36,24 +57,21 @@ export default class PostsService {
       ...post,
       author: user,
     });
-    const savedPost = await this.postsRepository.save(newPost);
-    // index the newly created post
-    await this.postsSearchService.indexPost(savedPost);
-
-    return savedPost;
+    await this.postsRepository.save(newPost);
+    this.postsSearchService.indexPost(newPost);
+    return newPost;
   }
 
   async updatePost(id: number, post: UpdatePostDto) {
-    const result = await this.postsRepository.update(id, post);
-    if (result) {
-      const updatedPost = await this.postsRepository.findOne({
-        where: { id },
-        relations: ['author'],
-      });
+    await this.postsRepository.update(id, post);
+    const updatedPost = await this.postsRepository.findOne({
+      where: { id },
+      relations: ['author'],
+    });
+    if (updatedPost) {
       await this.postsSearchService.update(updatedPost);
       return updatedPost;
     }
-
     throw new PostNotFoundException(id);
   }
 
@@ -65,15 +83,31 @@ export default class PostsService {
     await this.postsSearchService.remove(id);
   }
 
-  async searchForPosts(text: string) {
-    const results = await this.postsSearchService.search(text);
+  async searchForPosts(
+    text: string,
+    offset?: number,
+    limit?: number,
+    startId?: number,
+  ) {
+    const { results, count } = await this.postsSearchService.search(
+      text,
+      offset,
+      limit,
+      startId,
+    );
     const ids = results.map((result) => result.id);
-    
     if (!ids.length) {
-      return [];
+      return {
+        items: [],
+        count,
+      };
     }
-    return this.postsRepository.find({
+    const items = await this.postsRepository.find({
       where: { id: In(ids) },
     });
+    return {
+      items,
+      count,
+    };
   }
 }
