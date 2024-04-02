@@ -11,6 +11,7 @@ import {
   Query,
   UseInterceptors,
   ClassSerializerInterceptor,
+  Inject,
 } from '@nestjs/common';
 import PostsService from './posts.service';
 import CreatePostDto from './dto/createPost.dto';
@@ -18,25 +19,28 @@ import UpdatePostDto from './dto/updatePost.dto';
 import JwtAuthenticationGuard from '../authentication/jwt-authentication.guard';
 import FindOneParams from '../utils/findOneParams';
 import RequestWithUser from '../authentication/requestWithUser.interface';
+import { PaginationParams } from 'src/utils/types/paginationParams';
+import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager';
+import Cache from 'cache-manager';
+import { GET_POSTS_CACHE_KEY } from './postsCacheKey.constant';
 
 @Controller('posts')
 @UseInterceptors(ClassSerializerInterceptor)
 export default class PostsController {
-  constructor(
-    private readonly postsService: PostsService
-  ) {}
+  constructor(private readonly postsService: PostsService) {}
 
   @Get()
-  getAllPosts() {
-    return this.postsService.getAllPosts();
-  }
-
-  @Get('/search')
-  async getPosts(@Query('search') search: string) {
+  @UseInterceptors(CacheInterceptor)
+  @CacheKey(GET_POSTS_CACHE_KEY)
+  @CacheTTL(120)
+  getAllPosts(
+    @Query('search') search: string,
+    @Query() { offset, limit, startId }: PaginationParams,
+  ) {
     if (search) {
-      return this.postsService.searchForPosts(search);
+      return this.postsService.searchForPosts(search, offset, limit, startId);
     }
-    return this.postsService.getAllPosts();
+    return this.postsService.getAllPosts(offset, limit, startId);
   }
 
   @Get(':id')
@@ -51,7 +55,10 @@ export default class PostsController {
   }
 
   @Patch(':id')
-  async updatePost(@Param() { id }: FindOneParams, @Body() post: UpdatePostDto) {
+  async updatePost(
+    @Param() { id }: FindOneParams,
+    @Body() post: UpdatePostDto,
+  ) {
     return this.postsService.updatePost(Number(id), post);
   }
 
