@@ -6,13 +6,10 @@ import Post from './post.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SearchModule } from 'src/search/search.module';
 import PostsSearchService from './postsSearch.service';
-
+import { RedisOptions } from 'src/config/app-options.constant';
 @Module({
   imports: [
-    CacheModule.register({
-      ttl: 120000,
-      max: 100,
-    }),
+    CacheModule.registerAsync(RedisOptions),
     TypeOrmModule.forFeature([Post]),
     SearchModule,
   ],
